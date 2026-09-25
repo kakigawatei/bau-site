@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>まさとーーーく</title>
+    <link>https://bau.kakigawatei.com/voice/</link>
+    <atom:link href="https://bau.kakigawatei.com/voice/feed.xml" rel="self" type="application/rss+xml"/>
+    <language>ja</language>
+    <description>油そば柿川亭（新潟・長岡）の岡雅俊が、店のこと、アプリのこと、マーケティングのこと、日々思っていることを毎日ひとつ話す音声番組。</description>
+    <itunes:author>岡雅俊</itunes:author>
+    <itunes:owner><itunes:name>岡雅俊</itunes:name><itunes:email>kakigawatei@gmail.com</itunes:email></itunes:owner>
+    <itunes:image href="https://bau.kakigawatei.com/voice/cover.jpg"/>
+    <itunes:category text="Business"><itunes:category text="Entrepreneurship"/></itunes:category>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
+    <item>
+      <title>第1回 僕にとってのマーケティングは「どこに立つか」</title>
+      <itunes:title>第1回 僕にとってのマーケティングは「どこに立つか」</itunes:title>
+      <description>経営者に「あなたにとってマーケティングとは？」と聞くのが一番面白い。僕の答えは「どこに立つか」。油そば、自社アプリ、ながおか探検録の話を例に、立つ場所を決めるということについて。</description>
+      <itunes:summary>経営者に「あなたにとってマーケティングとは？」と聞くのが一番面白い。僕の答えは「どこに立つか」。油そば、自社アプリ、ながおか探検録の話を例に、立つ場所を決めるということについて。</itunes:summary>
+      <pubDate>Fri, 25 Sep 2026 14:00:00 +0900</pubDate>
+      <guid isPermaLink="false">masatalk-ep001</guid>
+      <enclosure url="https://bau.kakigawatei.com/voice/ep/ep001.mp3" length="2547621" type="audio/mpeg"/>
+      <itunes:duration>02:39</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+  </channel>
+</rss>
