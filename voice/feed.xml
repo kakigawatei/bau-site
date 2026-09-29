@@ -13,6 +13,17 @@
     <itunes:explicit>false</itunes:explicit>
     <itunes:type>episodic</itunes:type>
     <item>
+      <title>第3回 AI使ってるのに、パソコンないの？ ― 実は今、AIの教材を作っています</title>
+      <itunes:title>第3回 AI使ってるのに、パソコンないの？ ― 実は今、AIの教材を作っています</itunes:title>
+      <description>勉強会でパソコンを持たずにAIを回していたら「え、パソコンないの？」とポカンとされた話。スマホに並ぶAI社員（経理のジョー、SNSのリー、秘書のコン）と、名前をつけることの意味。もももんさんと準備中のAI教材は、10月に届ける予定です。</description>
+      <itunes:summary>勉強会でパソコンを持たずにAIを回していたら「え、パソコンないの？」とポカンとされた話。スマホに並ぶAI社員（経理のジョー、SNSのリー、秘書のコン）と、名前をつけることの意味。もももんさんと準備中のAI教材は、10月に届ける予定です。</itunes:summary>
+      <pubDate>Wed, 30 Sep 2026 07:00:00 +0900</pubDate>
+      <guid isPermaLink="false">masatalk-ep003</guid>
+      <enclosure url="https://bau.kakigawatei.com/voice/ep/ep003.mp3" length="5238470" type="audio/mpeg"/>
+      <itunes:duration>05:27</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
       <title>第2回 KPIは、アクティブユーザー数 ― 顔を出さずに、人が集まる時代</title>
       <itunes:title>第2回 KPIは、アクティブユーザー数 ― 顔を出さずに、人が集まる時代</itunes:title>
       <description>インフルエンサーのKPIはフォロワー数だった。でもリーチが出ても、アクティブにはならない。顔を出さずに人が集まる「ゲーム」の形、報酬の設計と貢献の可視化、常連の声に重みが出る柿川亭アプリの掲示板、そして自分でアプリが作れる時代＝完全なる民主化について。</description>
