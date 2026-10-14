@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>空中戦ボタン</title>
+<style>
+:root{--bg:#eaf6ff;--ink:#1d2b3a;--btn:#ff7a59;--btn2:#ffb199}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","M PLUS Rounded 1c",system-ui,sans-serif;overflow:hidden;touch-action:manipulation}
+.wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:16px;text-align:center}
+h1{font-size:20px;margin:0;line-height:1.5}
+p{margin:0;font-size:14px;opacity:.75;line-height:1.6}
+#b{width:min(72vw,320px);height:min(72vw,320px);border-radius:50%;border:none;background:radial-gradient(circle at 35% 30%,var(--btn2),var(--btn) 60%);color:#fff;font-size:30px;font-weight:800;box-shadow:0 12px 0 #d65a3c,0 18px 30px rgba(0,0,0,.18);transition:transform .05s}
+#b.on{transform:translateY(8px) scale(.97);box-shadow:0 4px 0 #d65a3c,0 8px 16px rgba(0,0,0,.18)}
+#b small{display:block;font-size:15px;font-weight:600;margin-top:6px}
+#c{font-size:14px;opacity:.7}
+.fx{position:fixed;pointer-events:none;font-size:26px;animation:up .8s ease-out forwards}
+@keyframes up{to{transform:translateY(-120px);opacity:0}}
+</style></head><body>
+<div class="wrap">
+  <h1>話が「空中戦」になってきたら<br>連打してください</h1>
+  <button id="b" aria-label="空中戦ボタン">空中戦！<small>🪽 タップ</small></button>
+  <div id="c">あなたのタップ 0 回</div>
+  <div id="st" style="font-size:12px;color:#c0392b;min-height:1em"></div>
+  <p>わかりやすい話のときは、押さなくて大丈夫です</p>
+</div>
+<script src="transport.js"></script>
+<script>
+var b=document.getElementById('b'),c=document.getElementById('c'),n=0;
+function hit(e){
+  e.preventDefault(); n++; c.textContent='あなたのタップ '+n+' 回';
+  KTransport.send(1);
+  b.classList.add('on'); setTimeout(function(){b.classList.remove('on')},70);
+  if(navigator.vibrate) navigator.vibrate(12);
+  var t=(e.touches&&e.touches[0])||e, s=document.createElement('div');
+  s.className='fx'; s.textContent=['🪽','💨','☁️','🚀'][n%4];
+  s.style.left=((t.clientX||innerWidth/2)-14)+'px'; s.style.top=((t.clientY||innerHeight/2)-30)+'px';
+  document.body.appendChild(s); setTimeout(function(){s.remove()},800);
+}
+b.addEventListener('touchstart',hit,{passive:false});
+b.addEventListener('mousedown',hit);
+var st=document.getElementById('st');KTransport.onStatus=function(x){st.textContent=x==='ok'?'':x==='error'?'通信できていません（電波を確認）':x==='local'?'':'接続中…'};
+// 試験用: ?selftest=n で n 回ぶん自動で送る
+var ST=parseInt(new URLSearchParams(location.search).get('selftest')||'0',10);if(ST>0){KTransport.send(ST);setTimeout(function(){document.title='SELFTEST '+KTransport.status()},4000)}
+</script>
+</body></html>

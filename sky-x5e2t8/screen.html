@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>空中戦メーター</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#8fd3ff;font-family:"Hiragino Maru Gothic ProN","M PLUS Rounded 1c",system-ui,sans-serif}
+canvas{display:block;width:100vw;height:100vh}
+#hud{position:fixed;left:24px;top:20px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35)}
+#lv{font-size:clamp(22px,3.2vw,44px);font-weight:800}
+#rt{font-size:clamp(13px,1.4vw,20px);opacity:.9;margin-top:4px}
+#qr{position:fixed;right:20px;bottom:20px;background:#fff;padding:10px 10px 6px;border-radius:14px;text-align:center;font-size:13px;color:#333;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+#qr img{display:block;width:150px;height:150px}
+#help{position:fixed;left:24px;bottom:16px;color:#fff;font-size:12px;opacity:.6}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="hud"><div id="lv">地上</div><div id="rt">タップ 0 回／秒</div></div>
+<div id="qr"><div id="qrimg"></div>スマホで読んで<br>空中戦だと思ったら連打</div>
+<div id="help">スペースキー／クリックでも試せます ・ Q で QR 表示切替</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="transport.js"></script>
+<script>
+var q = new URLSearchParams(location.search);
+var FULL = parseFloat(q.get('full') || '8');   // このタップ数/秒で「宇宙」まで上がる（人数に合わせて調整）
+var WIN = 4;                                    // 直近何秒のタップで勢いを測るか
+var cv = document.getElementById('cv'), g = cv.getContext('2d'), W, H, DPR = Math.min(2, window.devicePixelRatio || 1);
+function rs() { W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; g.setTransform(DPR, 0, 0, DPR, 0, 0); }
+addEventListener('resize', rs); rs();
+
+// QR（スマホ用ページ）
+(function () {
+  var u = new URL('tap.html', location.href); u.search = location.search;
+  try { var qr = qrcode(0, 'M'); qr.addData(u.href); qr.make(); document.getElementById('qrimg').innerHTML = qr.createImgTag(5, 0); } catch (e) {}
+})();
+addEventListener('keydown', function (e) {
+  if (e.key === 'q' || e.key === 'Q') { var s = document.getElementById('qr').style; s.display = s.display === 'none' ? '' : 'none'; }
+});
+
+// タップの記録
+var taps = [];
+function add(n) { var t = performance.now() / 1000; for (var i = 0; i < n; i++) taps.push(t); }
+KTransport.onTaps(add);
+addEventListener('keydown', function (e) { if (e.code === 'Space') { e.preventDefault(); add(1); } });
+cv.addEventListener('mousedown', function () { add(1); });
+// 試験用: ?demo=タップ数/秒 で自動タップ
+var DEMO = parseFloat(q.get('demo') || '0'); if (DEMO > 0) setInterval(function () { add(1); }, 1000 / DEMO);
+
+// 絵（あれば使う。無ければ図形で仮描き）
+function img(src) { var i = new Image(); i.ok = false; i.onload = function () { i.ok = true; }; i.src = src; return i; }
+var IM = { body: img('art/body.png'), wing: img('art/wing.png'), walk1: img('art/walk1.png'), walk2: img('art/walk2.png'), bear: img('art/bear.png') };
+
+// 雲・星
+var clouds = [], stars = [];
+for (var i = 0; i < 14; i++) clouds.push({ x: Math.random(), y: Math.random() * 3, s: .6 + Math.random() * .9, v: .004 + Math.random() * .01 });
+for (var i = 0; i < 160; i++) stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.6 + .3, p: Math.random() * 6 });
+
+var alt = 0, shown = 0, cam = 0, walkX = .3, dir = 1, flap = 0, last = performance.now() / 1000, state = 'walk';
+var LV = [[0, '地上', 'みんな理解できてる 👍'], [.12, 'ちょっと浮いてきた', 'まだ大丈夫？'], [.35, '雲の上', '空中戦になってきた ☁️'], [.65, '成層圏', 'だいぶ空中戦 🌀'], [.9, '宇宙', '完全に空中戦 🚀']];
+function mix(a, b, k) { return a.map(function (v, i) { return Math.round(v + (b[i] - v) * k); }); }
+function skyAt(a) {
+  var P = [[0, [143, 211, 255], [220, 242, 255]], [.4, [70, 150, 235], [170, 215, 255]], [.7, [25, 45, 120], [80, 110, 200]], [1, [5, 8, 30], [25, 20, 70]]];
+  for (var i = 1; i < P.length; i++) if (a <= P[i][0]) { var k = (a - P[i - 1][0]) / (P[i][0] - P[i - 1][0]); return [mix(P[i - 1][1], P[i][1], k), mix(P[i - 1][2], P[i][2], k)]; }
+  return [P[3][1], P[3][2]];
+}
+
+function frame() {
+  var now = performance.now() / 1000, dt = Math.min(.05, now - last); last = now;
+  while (taps.length && taps[0] < now - WIN) taps.shift();
+  var rate = taps.length / WIN, target = Math.min(1, rate / FULL);
+  if (target > alt) alt += (target - alt) * Math.min(1, 1.6 * dt);   // 上がるのは速く
+  else alt = Math.max(target, alt - .06 * dt);                         // 降りるのはふんわり
+  shown += (alt - shown) * Math.min(1, 4 * dt);
+  state = (shown < .015 && rate === 0) ? 'walk' : 'fly';
+  cam = shown * H * 2.2;
+
+  // 空
+  var sk = skyAt(shown), gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, 'rgb(' + sk[0] + ')'); gr.addColorStop(1, 'rgb(' + sk[1] + ')');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  // 星（高いほど見える）
+  var sa = Math.max(0, (shown - .55) / .45);
+  if (sa > 0) {
+    for (var i = 0; i < stars.length; i++) { var s = stars[i]; g.globalAlpha = sa * (.5 + .5 * Math.sin(now * 2 + s.p)); g.fillStyle = '#fff'; g.beginPath(); g.arc(s.x * W, s.y * H, s.r, 0, 7); g.fill(); }
+    g.globalAlpha = 1;
+  }
+  // 雲（上昇に合わせて下へ流れる）
+  for (var i = 0; i < clouds.length; i++) {
+    var c = clouds[i]; c.x += c.v * dt * (state === 'fly' ? 1 : .4); if (c.x > 1.2) c.x = -.2;
+    var y = ((c.y * H * .9 + cam * .9) % (H * 3)) - H * .4; if (y < -120 || y > H + 60) continue;
+    g.globalAlpha = .85 * (1 - Math.max(0, (shown - .75) / .25)); cloud(c.x * W, y, 60 * c.s); g.globalAlpha = 1;
+  }
+  // 地面
+  var gy = H * .82 + cam;
+  if (gy < H + 10) {
+    g.fillStyle = '#7cc46a'; g.fillRect(0, gy, W, H - gy + 10); g.fillStyle = '#5fa652'; g.fillRect(0, gy, W, 8);
+    for (var i = 0; i < 7; i++) flower(i * W / 6 + 30, gy + 30 + (i % 2) * 18);
+    bear(W * .13, gy, Math.min(W, H) / 520, now, state);
+  }
+  // キャラ
+  var cx, cy, sc = Math.min(W, H) / 520;
+  if (state === 'walk') {
+    walkX += dir * .05 * dt; if (walkX > .75) { walkX = .75; dir = -1; } if (walkX < .32) { walkX = .32; dir = 1; }
+    cx = walkX * W; cy = gy - 100 * sc - Math.abs(Math.sin(now * 7)) * 4 * sc;
+  } else {
+    cx = W * .5 + Math.sin(now * .9) * W * .06; cy = H * .82 - 110 * sc - shown * H * .40 + Math.sin(now * 3) * 6 * sc;
+  }
+  flap += dt * (state === 'fly' ? 10 + rate * 1.5 : 0);
+  hero(cx, cy, sc, state, state === 'walk' ? dir : 1, now);
+  // 表示
+  var L = LV[0]; for (var i = 0; i < LV.length; i++) if (shown >= LV[i][0]) L = LV[i];
+  document.getElementById('lv').textContent = L[1] + '：' + L[2];
+  document.getElementById('rt').textContent = 'タップ ' + rate.toFixed(1) + ' 回／秒 ・ 高度 ' + Math.round(shown * 100) + '%';
+  meter(shown);
+  requestAnimationFrame(frame);
+}
+function cloud(x, y, r) { g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, r, 0, 7); g.arc(x + r * .9, y + r * .2, r * .75, 0, 7); g.arc(x - r * .9, y + r * .25, r * .7, 0, 7); g.arc(x + r * .2, y - r * .45, r * .7, 0, 7); g.fill(); }
+function flower(x, y) { g.fillStyle = '#fff7a8'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
+function meter(a) {
+  var x = W - 34, top = H * .12, h = H * .5;
+  g.fillStyle = 'rgba(255,255,255,.35)'; rr(x, top, 14, h, 7);
+  g.fillStyle = a > .65 ? '#ff6b6b' : a > .35 ? '#ffc145' : '#6ee07a'; rr(x, top + h * (1 - a), 14, h * a, 7);
+  g.fillStyle = '#fff'; g.font = '12px sans-serif'; g.textAlign = 'right'; g.fillText('宇宙', x - 6, top + 10); g.fillText('地上', x - 6, top + h);
+}
+function rr(x, y, w, h, r) { if (h <= 0) return; r = Math.min(r, h / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.fill(); }
+function drawH(im, cx, cy, h) { var w = h * im.width / im.height; g.drawImage(im, cx - w / 2, cy - h / 2, w, h); }
+// 羽1枚（付け根＝絵の左下あたり）。side=1 右／-1 左
+function wing(x, y, s, side, ang) {
+  if (!IM.wing.ok) return;
+  var ww = 120 * s, wh = ww * IM.wing.height / IM.wing.width;
+  g.save(); g.translate(x, y); g.scale(side, 1); g.rotate(-ang);
+  g.drawImage(IM.wing, -ww * .06, -wh * .9, ww, wh);
+  g.restore();
+}
+function hero(x, y, s, st, d, now) {
+  if (st === 'fly') {
+    var ang = -.25 + Math.sin(flap) * .5;           // パタパタ
+    wing(x + 12 * s, y + 2 * s, s, 1, ang); wing(x - 12 * s, y + 2 * s, s, -1, ang);
+    if (IM.body.ok) drawH(IM.body, x, y, 200 * s);
+  } else {
+    var im = (Math.floor(now * 5) % 2) ? IM.walk1 : IM.walk2;
+    g.save(); g.translate(x, y); g.scale(d, 1);
+    // 歩くときは背中に小さくたたんだ羽
+    g.save(); g.translate(-22 * s, -18 * s); g.scale(-.55, .55); g.rotate(.5 + Math.sin(now * 5) * .08);
+    if (IM.wing.ok) { var ww = 120 * s, wh = ww * IM.wing.height / IM.wing.width; g.drawImage(IM.wing, -ww * .06, -wh * .9, ww, wh); }
+    g.restore();
+    if (im.ok) drawH(im, 0, 0, 200 * s);
+    g.restore();
+  }
+}
+// 地上のくま（ゆらゆら手をふる）
+function bear(x, groundY, s, now, st) {
+  if (!IM.bear.ok) return;
+  var h = 170 * s, w = h * IM.bear.width / IM.bear.height;
+  g.save(); g.translate(x, groundY + 4 * s); g.rotate(Math.sin(now * 2.2) * .05);
+  g.drawImage(IM.bear, -w / 2, -h, w, h);
+  g.restore();
+  if (st === 'fly') {  // 飛んでいったら見上げて呼ぶ
+    g.fillStyle = '#fff'; g.font = 'bold ' + Math.round(16 * s) + 'px sans-serif'; g.textAlign = 'center';
+    g.fillText('おーい、降りてきて〜', x + 10 * s, groundY - h - 12 * s);
+  }
+}
+requestAnimationFrame(frame);
+</script>
+</body></html>
