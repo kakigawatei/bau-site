@@ -46,14 +46,14 @@ var DEMO = parseFloat(q.get('demo') || '0'); if (DEMO > 0) setInterval(function 
 
 // 絵（あれば使う。無ければ図形で仮描き）
 function img(src) { var i = new Image(); i.ok = false; i.onload = function () { i.ok = true; }; i.src = src; return i; }
-var IM = { body: img('art/body.png'), wing: img('art/wing.png'), walk1: img('art/walk1.png'), walk2: img('art/walk2.png'), bear: img('art/bear.png') };
+var IM = { body: img('art/body.png'), wing: img('art/wing.png'), walk1: img('art/walk1.png'), walk2: img('art/walk2.png'), bear: img('art/bear.png'), bw1: img('art/bear_walk1.png'), bw2: img('art/bear_walk2.png') };
 
 // 雲・星
 var clouds = [], stars = [];
 for (var i = 0; i < 14; i++) clouds.push({ x: Math.random(), y: Math.random() * 3, s: .6 + Math.random() * .9, v: .004 + Math.random() * .01 });
 for (var i = 0; i < 160; i++) stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.6 + .3, p: Math.random() * 6 });
 
-var alt = 0, shown = 0, cam = 0, walkX = .3, dir = 1, flap = 0, last = performance.now() / 1000, state = 'walk';
+var alt = 0, shown = 0, cam = 0, walkX = .45, dir = 1, bearX = .14, bearDir = 1, flap = 0, last = performance.now() / 1000, state = 'walk';
 var LV = [[0, '地上', 'みんな理解できてる 👍'], [.12, 'ちょっと浮いてきた', 'まだ大丈夫？'], [.35, '雲の上', '空中戦になってきた ☁️'], [.65, '成層圏', 'だいぶ空中戦 🌀'], [.9, '宇宙', '完全に空中戦 🚀']];
 function mix(a, b, k) { return a.map(function (v, i) { return Math.round(v + (b[i] - v) * k); }); }
 function skyAt(a) {
@@ -93,7 +93,8 @@ function frame() {
   if (gy < H + 10) {
     g.fillStyle = '#7cc46a'; g.fillRect(0, gy, W, H - gy + 10); g.fillStyle = '#5fa652'; g.fillRect(0, gy, W, 8);
     for (var i = 0; i < 7; i++) flower(i * W / 6 + 30, gy + 30 + (i % 2) * 18);
-    bear(W * .13, gy, Math.min(W, H) / 520, now, state);
+    if (state === 'walk') { bearX += bearDir * .035 * dt; if (bearX > .3) { bearX = .3; bearDir = -1; } if (bearX < .06) { bearX = .06; bearDir = 1; } }
+    bear(bearX * W, gy, Math.min(W, H) / 520, now, state, bearDir);
   }
   // キャラ
   var cx, cy, sc = Math.min(W, H) / 520;
@@ -139,21 +140,27 @@ function hero(x, y, s, st, d, now) {
     var im = (Math.floor(now * 5) % 2) ? IM.walk1 : IM.walk2;
     g.save(); g.translate(x, y); g.scale(d, 1);
     // 歩くときは背中に小さくたたんだ羽
-    g.save(); g.translate(-22 * s, -18 * s); g.scale(-.55, .55); g.rotate(.5 + Math.sin(now * 5) * .08);
+    g.save(); g.translate(-4 * s, -12 * s); g.scale(-.6, .6); g.rotate(.35 + Math.sin(now * 5) * .1);
     if (IM.wing.ok) { var ww = 120 * s, wh = ww * IM.wing.height / IM.wing.width; g.drawImage(IM.wing, -ww * .06, -wh * .9, ww, wh); }
     g.restore();
     if (im.ok) drawH(im, 0, 0, 200 * s);
     g.restore();
   }
 }
-// 地上のくま（ゆらゆら手をふる）
-function bear(x, groundY, s, now, st) {
-  if (!IM.bear.ok) return;
-  var h = 170 * s, w = h * IM.bear.width / IM.bear.height;
-  g.save(); g.translate(x, groundY + 4 * s); g.rotate(Math.sin(now * 2.2) * .05);
-  g.drawImage(IM.bear, -w / 2, -h, w, h);
+// 地上のくま（ふだんは歩く・マサが飛んだら立ち止まって手をふって呼ぶ）
+function bear(x, groundY, s, now, st, d) {
+  var h = 170 * s;
+  g.save(); g.translate(x, groundY + 4 * s);
+  if (st === 'walk' && IM.bw1.ok && IM.bw2.ok) {
+    var im = (Math.floor(now * 4) % 2) ? IM.bw1 : IM.bw2, w = h * im.width / im.height;
+    g.translate(0, -Math.abs(Math.sin(now * 4 * Math.PI)) * 3 * s); g.scale(d, 1);
+    g.drawImage(im, -w / 2, -h, w, h);
+  } else if (IM.bear.ok) {
+    var w2 = h * IM.bear.width / IM.bear.height;
+    g.rotate(Math.sin(now * 2.2) * .05); g.drawImage(IM.bear, -w2 / 2, -h, w2, h);
+  }
   g.restore();
-  if (st === 'fly') {  // 飛んでいったら見上げて呼ぶ
+  if (st === 'fly') {
     g.fillStyle = '#fff'; g.font = 'bold ' + Math.round(16 * s) + 'px sans-serif'; g.textAlign = 'center';
     g.fillText('おーい、降りてきて〜', x + 10 * s, groundY - h - 12 * s);
   }
